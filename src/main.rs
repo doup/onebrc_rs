@@ -95,8 +95,8 @@ fn main() -> std::io::Result<()> {
 }
 
 fn find_next_line_break(data: &[u8], start_idx: usize) -> usize {
-    for idx in start_idx..data.len() {
-        if data[idx] == b'\n' {
+    for (idx, byte) in data.iter().enumerate().skip(start_idx) {
+        if *byte == b'\n' {
             return idx;
         }
     }
@@ -112,7 +112,7 @@ fn get_slices(data: &[u8], total: usize) -> Vec<(usize, usize)> {
 
         for slice in slices.iter() {
             let half_len = slice.0 + ((slice.1 - slice.0) / 2);
-            let split_at = find_next_line_break(&data, half_len);
+            let split_at = find_next_line_break(data, half_len);
 
             new_slices.push((slice.0, split_at));
             new_slices.push((split_at + 1, slice.1));
@@ -153,7 +153,7 @@ fn write_result(file: &str, stats: &BTreeMap<String, Station>) -> std::io::Resul
         if it.peek().is_some() {
             write!(out, ", ")?;
         } else {
-            write!(out, "}}\n")?;
+            writeln!(out, "}}")?;
         }
     }
 
