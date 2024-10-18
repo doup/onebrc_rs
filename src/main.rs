@@ -2,12 +2,11 @@ use core::f32;
 use std::{
     collections::{BTreeMap, HashMap},
     env, fs,
-    io::{BufRead, BufReader},
     sync::Arc,
     thread::{self, available_parallelism},
 };
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 struct Station {
     min: f32,
     sum: f32,
@@ -32,38 +31,42 @@ fn main() -> std::io::Result<()> {
         let data = Arc::clone(&data);
 
         threads.push(thread::spawn(move || {
-            let slice: &[u8] = &data[from..to];
-            let mut reader = BufReader::new(slice);
-            let mut buf = String::with_capacity(32);
-            let mut stats: HashMap<String, Station> = HashMap::new();
+            let slice = &data[from..to];
+            let lines = slice.split(|&byte| byte == b'\n');
+            let mut stats: HashMap<&str, Station> = HashMap::new();
 
-            while let Ok(bytes_read) = reader.read_line(&mut buf) {
-                if bytes_read == 0 {
-                    break;
+            for line in lines {
+                if let Ok(line) = std::str::from_utf8(line) {
+                    if line == "" {
+                        break;
+                    }
+
+                    let (station, temp) = parse_line(line);
+
+                    let item = stats.entry(station).or_insert(Station {
+                        min: temp,
+                        sum: 0.,
+                        max: temp,
+                        total: 0,
+                    });
+
+                    if temp > item.max {
+                        item.max = temp;
+                    } else if temp < item.min {
+                        item.min = temp;
+                    }
+
+                    item.sum += temp;
+                    item.total += 1;
+                } else {
+                    eprintln!("Invalid UTF-8 sequence found in line.");
                 }
-
-                let (station, temp) = parse_line(&buf);
-
-                let item = stats.entry(station).or_insert(Station {
-                    min: temp,
-                    sum: 0.,
-                    max: temp,
-                    total: 0,
-                });
-
-                if temp > item.max {
-                    item.max = temp;
-                } else if temp < item.min {
-                    item.min = temp;
-                }
-
-                item.sum += temp;
-                item.total += 1;
-
-                buf.clear();
             }
 
             stats
+                .into_iter()
+                .map(|(key, value)| (key.to_string(), value))
+                .collect::<HashMap<String, Station>>()
         }));
     }
 
@@ -74,18 +77,20 @@ fn main() -> std::io::Result<()> {
         let thread_stats = thread.join().unwrap();
 
         for (station, station_stats) in thread_stats {
-            let item = stats.entry(station).or_insert(station_stats.clone());
+            if let Some(item) = stats.get_mut(&station) {
+                if station_stats.max > item.max {
+                    item.max = station_stats.max;
+                }
 
-            if station_stats.max > item.max {
-                item.max = station_stats.max;
+                if station_stats.min < item.min {
+                    item.min = station_stats.min;
+                }
+
+                item.sum += station_stats.sum;
+                item.total += station_stats.total;
+            } else {
+                stats.insert(station, station_stats);
             }
-
-            if station_stats.min < item.min {
-                item.min = station_stats.min;
-            }
-
-            item.sum += station_stats.sum;
-            item.total += station_stats.total;
         }
     }
 
@@ -124,11 +129,11 @@ fn get_slices(data: &[u8], total: usize) -> Vec<(usize, usize)> {
     slices
 }
 
-fn parse_line(line: &str) -> (String, f32) {
+fn parse_line(line: &str) -> (&str, f32) {
     let mut parts = line.split(';');
-    let station = parts.next().unwrap().into();
+    let station = parts.next().unwrap();
     let temp = parts.next().unwrap();
-    let temp = &temp[0..temp.len() - 1];
+    let temp = &temp[0..temp.len()];
     let temp = temp.parse().unwrap();
 
     (station, temp)
