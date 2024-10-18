@@ -1,8 +1,9 @@
 # 1 Billion Row Challenge in Rust
 
-| Version | Time (s) |
-| ------- | -------- |
-| v1      | 133.361  |
+| Version | Description                              | Time (s) |
+| ------- | ---------------------------------------- | -------- |
+| v1      | Single-threaded                          | 133.361  |
+| v2      | Multi-threaded. Whole file loaded to RAM | 38.853   |
 
 ## Run and compare
 

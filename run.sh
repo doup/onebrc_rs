@@ -1,4 +1,6 @@
 #!/bin/bash
+set -e
+
 if [[ -z "$1" ]]; then
     echo "Usage: $0 <number>"
     exit 1
