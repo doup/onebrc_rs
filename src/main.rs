@@ -1,6 +1,6 @@
 use core::f32;
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, HashMap},
     env, fs,
     io::{BufRead, BufReader},
     sync::Arc,
@@ -35,7 +35,7 @@ fn main() -> std::io::Result<()> {
             let slice: &[u8] = &data[from..to];
             let mut reader = BufReader::new(slice);
             let mut buf = String::with_capacity(32);
-            let mut stats: BTreeMap<String, Station> = BTreeMap::new();
+            let mut stats: HashMap<String, Station> = HashMap::new();
 
             while let Ok(bytes_read) = reader.read_line(&mut buf) {
                 if bytes_read == 0 {
