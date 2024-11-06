@@ -14,6 +14,17 @@ struct Station {
     total: usize,
 }
 
+impl Default for Station {
+    fn default() -> Self {
+        Self {
+            min: f32::MAX,
+            sum: 0.,
+            max: f32::MIN,
+            total: 0,
+        }
+    }
+}
+
 fn main() -> std::io::Result<()> {
     let args: Vec<String> = env::args().collect();
     let file = format!(
@@ -42,13 +53,7 @@ fn main() -> std::io::Result<()> {
                     }
 
                     let (station, temp) = parse_line(line);
-
-                    let item = stats.entry(station).or_insert(Station {
-                        min: temp,
-                        sum: 0.,
-                        max: temp,
-                        total: 0,
-                    });
+                    let item = stats.entry(station).or_default();
 
                     if temp > item.max {
                         item.max = temp;
